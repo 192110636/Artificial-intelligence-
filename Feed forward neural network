@@ -1,0 +1,50 @@
+import numpy as np
+
+# Sigmoid activation and its derivative
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+# Input data (XOR example)
+X = np.array([
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1]
+])
+
+# Output labels
+y = np.array([
+    [0],
+    [1],
+    [1],
+    [0]
+])
+
+# Seed for reproducibility
+np.random.seed(42)
+
+# Initialize weights and biases
+input_size = 2
+hidden_size = 4
+output_size = 1
+
+weights_input_hidden = np.random.randn(input_size, hidden_size)
+bias_hidden = np.zeros((1, hidden_size))
+
+weights_hidden_output = np.random.randn(hidden_size, output_size)
+bias_output = np.zeros((1, output_size))
+
+# Training parameters
+learning_rate = 0.1
+epochs = 10000
+
+# Training loop
+for epoch in range(epochs):
+    # Forward pass
+    hidden_input = np.dot(X, weights_input_hidden) + bias_hidden
+    hidden_output = sigmoid(hidden_input)
+
+    final_input = np.dot(hidden_output, weights_hidden_output)
