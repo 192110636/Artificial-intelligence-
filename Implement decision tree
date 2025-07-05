@@ -1,18 +1,56 @@
-dataset = [
-    ['Sunny', 'Hot', 'High', 'Weak', 'No'],
-    ['Sunny', 'Hot', 'High', 'Strong', 'No'],
-    ['Overcast', 'Hot', 'High', 'Weak', 'Yes'],
-    ['Rain', 'Mild', 'High', 'Weak', 'Yes'],
-    ['Rain', 'Cool', 'Normal', 'Weak', 'Yes'],
-    ['Rain', 'Cool', 'Normal', 'Strong', 'No'],
-    ['Overcast', 'Cool', 'Normal', 'Strong', 'Yes'],
-    ['Sunny', 'Mild', 'High', 'Weak', 'No'],
-    ['Sunny', 'Cool', 'Normal', 'Weak', 'Yes'],
-    ['Rain', 'Mild', 'Normal', 'Weak', 'Yes'],
-    ['Sunny', 'Mild', 'Normal', 'Strong', 'Yes'],
-    ['Overcast', 'Mild', 'High', 'Strong', 'Yes'],
-    ['Overcast', 'Hot', 'Normal', 'Weak', 'Yes'],
-    ['Rain', 'Mild', 'High', 'Strong', 'No']
-]
+import math
+from collections import Counter
 
-features = ['Outlook', 'Temperature', 'Humidity', 'Wind']
+# Calculate entropy of a dataset
+def entropy(data):
+    labels = [row[-1] for row in data]
+    label_counts = Counter(labels)
+    total = len(data)
+    return -sum((count / total) * math.log2(count / total) for count in label_counts.values())
+
+# Split dataset on a feature
+def split_data(data, index, value):
+    return [row for row in data if row[index] == value]
+
+# Choose the best feature to split on
+def best_feature_to_split(data, features):
+    base_entropy = entropy(data)
+    best_info_gain = 0
+    best_feature = -1
+
+    for i in range(len(features)):
+        values = set(row[i] for row in data)
+        new_entropy = 0
+        for value in values:
+            subset = split_data(data, i, value)
+            new_entropy += len(subset) / len(data) * entropy(subset)
+        info_gain = base_entropy - new_entropy
+        if info_gain > best_info_gain:
+            best_info_gain = info_gain
+            best_feature = i
+
+    return best_feature
+
+# Create the decision tree recursively
+def build_tree(data, features):
+    labels = [row[-1] for row in data]
+    if labels.count(labels[0]) == len(labels):
+        return labels[0]  # All same class
+    if not features:
+        return Counter(labels).most_common(1)[0][0]  # Majority class
+
+    best_idx = best_feature_to_split(data, features)
+    best_feat = features[best_idx]
+    tree = {best_feat: {}}
+    unique_vals = set(row[best_idx] for row in data)
+
+    for val in unique_vals:
+        sub_data = split_data(data, best_idx, val)
+        sub_features = features[:best_idx] + features[best_idx+1:]
+        subtree = build_tree(
+            [row[:best_idx] + row[best_idx+1:] for row in sub_data],
+            sub_features
+        )
+        tree[best_feat][val] = subtree
+
+    return tree
