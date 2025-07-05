@@ -1,0 +1,83 @@
+# Define the CSP for map coloring
+
+# Define the map of regions and their neighbors (adjacency list)
+neighbors = {
+    'WA': ['NT', 'SA'],
+    'NT': ['WA', 'SA', 'Q'],
+    'SA': ['WA', 'NT', 'Q', 'NSW', 'V'],
+    'Q': ['NT', 'SA', 'NSW'],
+    'NSW': ['SA', 'Q', 'V'],
+    'V': ['SA', 'NSW', 'T'],
+    'T': ['V']
+}
+
+# Define the set of colors
+colors = ['Red', 'Green', 'Blue']
+
+# CSP solver using backtracking with forward checking
+class MapColoringCSP:
+    def __init__(self, variables, domains, neighbors):
+        self.variables = variables
+        self.domains = domains.copy()
+        self.neighbors = neighbors
+        self.assignment = {}
+
+    def is_consistent(self, var, value):
+        for neighbor in self.neighbors[var]:
+            if neighbor in self.assignment and self.assignment[neighbor] == value:
+                return False
+        return True
+
+    def forward_checking(self, var, value):
+        removed = {}
+        for neighbor in self.neighbors[var]:
+            if neighbor not in self.assignment:
+                if value in self.domains[neighbor]:
+                    self.domains[neighbor].remove(value)
+                    removed.setdefault(neighbor, []).append(value)
+                    if not self.domains[neighbor]:
+                        return False, removed
+        return True, removed
+
+    def restore_domains(self, removed):
+        for var, values in removed.items():
+            self.domains[var].extend(values)
+
+    def select_unassigned_variable(self):
+        unassigned = [v for v in self.variables if v not in self.assignment]
+        # MRV heuristic
+        return min(unassigned, key=lambda var: len(self.domains[var]))
+
+    def backtrack(self):
+        if len(self.assignment) == len(self.variables):
+            return self.assignment
+
+        var = self.select_unassigned_variable()
+        for value in self.domains[var]:
+            if self.is_consistent(var, value):
+                self.assignment[var] = value
+                # Forward checking
+                success, removed = self.forward_checking(var, value)
+                if success:
+                    result = self.backtrack()
+                    if result:
+                        return result
+                self.restore_domains(removed)
+                del self.assignment[var]
+
+        return None
+
+# Define variables and domains
+variables = list(neighbors.keys())
+domains = {var: colors[:] for var in variables}
+
+# Create the CSP instance and solve it
+csp = MapColoringCSP(variables, domains, neighbors)
+solution = csp.backtrack()
+
+# Display the solution
+if solution:
+    for region in sorted(solution):
+        print(f"{region}: {solution[region]}")
+else:
+    print("No solution found.")
